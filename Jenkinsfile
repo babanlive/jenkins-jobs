@@ -3,7 +3,7 @@ pipeline {
 
     options {
         timeout(time: 30, unit: 'MINUTES') // ⏰ Таймаут на всю сборку
-        buildDiscarder(logRotator(numToKeep: 10)) // 🔄 Хранить только последние 10 сборок
+        buildDiscarder(logRotator(numToKeepStr: '10')) // 🔄 Хранить только последние 10 сборок
     }
 
     environment {

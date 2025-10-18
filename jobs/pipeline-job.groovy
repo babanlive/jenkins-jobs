@@ -6,9 +6,9 @@ pipelineJob('TestPipeline') {
             scm {
                 git {
                     remote {
-                        url('{{ jenkins_jobs_repo_url }}')  // URL берётся из твоего defaults/main.yml
+                        url('git@github.com:babanlive/jenkins-jobs.git')  // ⬅️ Прямой URL
                     }
-                    branch('{{ jenkins_jobs_repo_branch }}')
+                    branch('main')  // ⬅️ Прямое указание ветки
                 }
             }
             scriptPath('Jenkinsfile') // путь до Jenkinsfile в репозитории
@@ -16,10 +16,14 @@ pipelineJob('TestPipeline') {
     }
 
     triggers {
-        scm('H/5 * * * *') // запуск каждые 5 минут, можно заменить
+        scm('H/5 * * * *') // запуск каждые 5 минут
     }
 
     logRotator {
         numToKeep(10)
+    }
+    
+    properties {
+        disableConcurrentBuilds()
     }
 }

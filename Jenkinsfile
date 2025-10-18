@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     options {
-        timestamps()                    // 📝 Добавляет время к каждому шагу
         timeout(time: 30, unit: 'MINUTES') // ⏰ Таймаут на всю сборку
+        buildDiscarder(logRotator(numToKeep: 10)) // 🔄 Хранить только последние 10 сборок
     }
 
     environment {
@@ -34,7 +34,7 @@ pipeline {
                     echo "Build completed!"
                 '''
             }
-            
+
             post {
                 success {
                     echo "✅ Build stage completed successfully!"
@@ -51,7 +51,7 @@ pipeline {
                     echo "Code coverage: 85%"
                 '''
             }
-            
+
             post {
                 success {
                     echo "✅ All tests passed!"
@@ -68,15 +68,10 @@ pipeline {
                     echo "Deployment completed successfully!"
                 '''
             }
-            
+
             post {
                 success {
                     echo "✅ Deployment successful!"
-                    emailext (
-                        subject: "SUCCESS: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                        body: "Pipeline completed successfully!\nBuild URL: ${env.BUILD_URL}",
-                        to: "admin@example.com"
-                    )
                 }
             }
         }

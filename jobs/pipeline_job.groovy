@@ -1,26 +1,25 @@
-pipelineJob('Tests/TestPipeline') {
-    description('Pipeline job, созданный через JobDSL из GitHub репозитория.')
+folder('Tests') {
+    displayName('Test Jobs')
+    description('Jobs for testing purposes')
+}
 
+pipelineJob("Tests/TestPipeline") {
     definition {
-        cpsScm {
-            scm {
-                git {
-                    remote {
-                        url('git@github.com:babanlive/jenkins-jobs.git')
+        cps {
+            script('''
+                pipeline {
+                    agent any
+                    stages {
+                        stage('Test') {
+                            steps {
+                                echo 'Hello World!'
+                            }
+                        }
                     }
-                    branch('main')
                 }
-            }
-            scriptPath('Jenkinsfile')
+            ''')
+            sandbox(true)
         }
-    }
-
-    triggers {
-        scm('H/5 * * * *')
-    }
-
-    logRotator {
-        numToKeep(10)
     }
     
     properties {

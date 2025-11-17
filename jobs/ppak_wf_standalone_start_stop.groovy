@@ -21,7 +21,7 @@ pipelineJob('Functions/ppak-wf-standalone-start-stop') {
     parameters {
         choiceParam('ACTION', ['start', 'stop'], 'Выбор действия с Wildfly: start/stop')
         stringParam('STAND', 'ppak', 'Выбор стенда (ppak)')
-        stringParam('TAGS', 'saiku', 'Выбор тэга ansible (saiku - для выбора хостов ppak-app-wf-saiku, иначе оставить пустым)')
+        choiceParam('TAGS', ['', saiku'], 'Выбор тэга ansible (saiku - для выбора хостов ppak-app-wf-saiku, иначе оставить пустым)')
     }
     
     logRotator {

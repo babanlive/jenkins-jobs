@@ -1,5 +1,4 @@
 folder('Functions') {
-    displayName('Utility Functions')
     description('Utility and maintenance jobs')
 }
 

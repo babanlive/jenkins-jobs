@@ -1,22 +1,22 @@
-pipelineJob('TestPipeline') {
-    description('🚀 Пример простого pipeline job, созданного через JobDSL из Git.')
+pipelineJob('Tests/TestPipeline') {
+    description('Pipeline job, созданный через JobDSL из GitHub репозитория.')
 
     definition {
         cpsScm {
             scm {
                 git {
                     remote {
-                        url('git@github.com:babanlive/jenkins-jobs.git')  // ⬅️ Прямой URL
+                        url('git@github.com:babanlive/jenkins-jobs.git')
                     }
-                    branch('main')  // ⬅️ Прямое указание ветки
+                    branch('main')
                 }
             }
-            scriptPath('Jenkinsfile') // путь до Jenkinsfile в репозитории
+            scriptPath('Jenkinsfile')
         }
     }
 
     triggers {
-        scm('H/5 * * * *') // запуск каждые 5 минут
+        scm('H/5 * * * *')
     }
 
     logRotator {

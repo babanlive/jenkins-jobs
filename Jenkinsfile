@@ -1,54 +1,23 @@
 def update_reference_git() {
   withCredentials([sshUserPrivateKey(credentialsId: "CredID_SSH_Jenkins_Masters_to_Gitlab", keyFileVariable: 'keyfile')]) {
     sh """
-       cd "${HCS_GIT_REFERENCE_ROOT}/hcs_infra_ansible.git" && git -c core.sshCommand="/bin/ssh -i ${keyfile}" fetch --all --prune
+       cd "${HCS_GIT_REFERENCE_ROOT}/ipr.git" && git -c core.sshCommand="/bin/ssh -i ${keyfile}" fetch --all --prune
     """
   }
 }
 
-def send_job_success_status_to_telegram() {
-  telegramSend(
-    message: '''
-      🟢 *[JENKINS - WILDFLY CONTROL]*:
-      *Job:* [${JOB_NAME}]
-      *Action:* ${ACTION}
-      *Status:* [${BUILD_STATUS}]
-    ''',
-    chatId: -1003048081797
-  )
-}
-
-def send_job_failure_status_to_telegram() {
-  telegramSend(
-    message: '''
-      🔴 *[JENKINS - WILDFLY CONTROL]*:
-      *Job:* [${JOB_NAME}]
-      *Action:* ${ACTION}
-      *Status:* [${BUILD_STATUS}]
-    ''',
-    chatId: -1003048081797
-  )
-}
-
-def run_wildfly_playbook(action, stand_name) {
-    dir("${WORKSPACE}/hcs_infra_ansible.git") {
+def run_wildfly_playbook(action_param, stand_param, tag_param, dry_run_param) {
+    dir("${WORKSPACE}/ipr.git") {
         ansiColor('xterm') {
-            def playbook
-            if (action == 'start') {
-                playbook = 'wildfly_standalone_start.yml'
-            } else {
-                playbook = 'wildfly_standalone_stop.yml'
-            }
-            def extraVars = [:]
-            if (params.TAGS) {
-                extraVars.tags = params.TAGS
-            }
+            def playbook = (action_param == 'start') ? 'wildfly_standalone_start.yml' : 'wildfly_standalone_stop.yml'
+            def dry_run = dry_run_param ? "--check" : ""
             ansiblePlaybook(
                 credentialsId: 'CredID_SSH_Jenkins_as_exec_into_hosts',
                 colorized: true,
-                inventory: "inventories/voshod/${stand_name}",
+                inventory: "inventories/${stand_param}",
                 playbook: "playbooks/${playbook}",
-                extraVars: extraVars
+                tags: tag_param ?: "",
+                checkMode: dry_run_param
             )
         }
     }
@@ -56,15 +25,16 @@ def run_wildfly_playbook(action, stand_name) {
 
 pipeline {
     agent {
-        label 'master'
+        label 'slave'
     }
     options {
         timestamps()
     }
     parameters {
-        choice(name: 'ACTION', choices: ['start', 'stop'])
-        string(name: 'STAND', defaultValue: 'ppak')
-        string(name: 'TAGS', defaultValue: '')
+        booleanParam(name: 'DRY_RUN', defaultValue: true, description: 'Если отмечено - Ansible запустится с флагом --check (без изменений на сервере)')
+        choice(name: 'ACTION', choices: ['start', 'stop'], description: 'Выбор действия с Wildfly: start/stop')
+        string(name: 'STAND', defaultValue: 'local.ini', description: 'Выбор стенда')
+        choice(name: 'TAGS', choices: ['', 'saiku'], description: 'Оставить пустым - для выбора всех ячеек;  SAIKU - выбрать только ячейку saiku')
     }
     environment {
         HCS_GIT_REFERENCE_ROOT = '/u01/jenkins_cache/git'
@@ -81,32 +51,26 @@ pipeline {
             steps {
                 dir("${WORKSPACE}") {
                     checkout([$class: 'GitSCM',
-                        branches: [[name: "master"]],
+                        branches: [[name: "main"]],
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [
-                            [$class: 'CloneOption', reference: "${HCS_GIT_REFERENCE_ROOT}/hcs_infra_ansible.git", shallow: true, depth: "1"],
-                            [$class: 'RelativeTargetDirectory', relativeTargetDir: "hcs_infra_ansible.git"],
+                            [$class: 'CloneOption', reference: "${HCS_GIT_REFERENCE_ROOT}/ipr.git", shallow: true, depth: "1"],
+                            [$class: 'RelativeTargetDirectory', relativeTargetDir: "ipr.git"],
                         ],
                         gitTool: 'Default',
-                        userRemoteConfigs: [[url: 'git@git.oisrf.ru:hcs/hcs_infra_ansible.git', credentialsId: 'CredID_SSH_Jenkins_Masters_to_Gitlab']]
+                        userRemoteConfigs: [[url: 'git@gitlab.on1x-pwnz.ru:babanlive/ipr.git', credentialsId: 'CredID_SSH_Jenkins_Masters_to_Gitlab']]
                     ])
                 }
             }
         }
-        stage('Wildfly Control') {
+
+        stage("Action Wildfly") {
             steps {
+                echo "Executing ${params.ACTION} on ${params.STAND}"
                 script {
-                    run_wildfly_playbook(params.ACTION, params.STAND)
+                    run_wildfly_playbook(params.ACTION, params.STAND, params.TAGS, params.DRY_RUN)
                 }
             }
-        }
-    }
-    post {
-        success {
-            send_job_success_status_to_telegram()
-        }
-        failure {
-            send_job_failure_status_to_telegram()
         }
     }
 }
